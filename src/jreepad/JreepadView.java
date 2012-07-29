@@ -19,6 +19,7 @@ The full license can be read online here:
 
 package jreepad;
 
+import java.awt.Desktop;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
@@ -26,6 +27,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ResourceBundle;
 import java.util.Vector;
 
 import javax.swing.Box;
@@ -38,24 +42,19 @@ import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
-import javax.swing.tree.TreePath;
 import javax.swing.text.DefaultEditorKit;
+import javax.swing.text.JTextComponent;
+import javax.swing.tree.TreePath;
 
 import jreepad.editor.ArticleView;
 import jreepad.editor.ContentChangeListener;
+import jreepad.editor.EditPopupHandler;
 import jreepad.editor.HtmlViewer;
 import jreepad.editor.PlainTextEditor;
 import jreepad.editor.TableViewer;
-import jreepad.editor.TextileViewer;
-import edu.stanford.ejalbert.BrowserLauncher;
-import edu.stanford.ejalbert.exception.BrowserLaunchingExecutionException;
-import edu.stanford.ejalbert.exception.BrowserLaunchingInitializingException;
-import edu.stanford.ejalbert.exception.UnsupportedOperatingSystemException;
-import jreepad.ui.FontHelper;
-import jreepad.editor.EditPopupHandler;
 import jreepad.editor.TextTransferHandler;
-import javax.swing.text.JTextComponent;
-import java.util.ResourceBundle;
+import jreepad.editor.TextileViewer;
+import jreepad.ui.FontHelper;
 
 public class JreepadView
     extends Box {
@@ -67,6 +66,7 @@ public class JreepadView
   private TreeView tree;
   private JScrollPane treeView;
   private JScrollPane articlePane;
+  
 
   // editorPane is supposed to represent the pane currently displayed/edited - so it's the one
   //    to refer to when you're doing GUI-related stuff
@@ -708,8 +708,8 @@ public class JreepadView
 
   public void openURL(String url)
   {
-    if(url==null || url=="")
-      return;
+    if( url==null || url.isEmpty() )
+       return;
     url = url.trim();
 
     // Wiki-like links
@@ -747,59 +747,60 @@ public class JreepadView
       return;
     }
 
-    // It's probably a web-link, so let's do something to it and then try and launch it
-
-/*
-
-//  NOTE:
-//  I haven't been able to get this file:// method to work, on Windows 2000 or on Mac OSX.
-//  So I'm disactivating it for now.
-
-    // Firstly we use Kami's method for attempting to open file:// links
-    if(url.startsWith("file://"))
-    {
-      url =  getPrefs().openLocation.getParentFile().getPath() + System.getProperty("file.separator")+  url.substring(7);
-      try
-      {
-        BrowserLauncher.openURL(url.toString());
-      }
-      catch(IOException err)
-      {
-        JOptionPane.showMessageDialog(this, "I/O error while opening URL:\n"+url+"\n\nThe \"BrowserLauncher\" used to open a URL is an open-source Java library \nseparate from Jreepad itself - i.e. a separate Sourceforge project. \nIt may be a good idea to submit a bug report to\nhttp://sourceforge.net/projects/browserlauncher\n\nIf you do, please remember to supply information about the operating system\nyou are using - which type, and which version.", "Error" , JOptionPane.ERROR_MESSAGE);
-      }
-    }
-    else
-    {
-*/
+     // It's probably a web-link, so let's do something to it and then try and launch it
+     url = url.replaceAll( " ", "%20" );
+/*        
 		char[] curl = url.toCharArray();
 		StringBuffer surl = new StringBuffer();
-		for(int i=0; i<curl.length; i++)
-		  if(curl[i]==' ')
-			surl.append("%20");
+		for(int i=0; i<curl.length; i++) {
+		  if( curl[i]==' ' )
+			 surl.append("%20");
 		  else
-			surl.append(curl[i]);
-        try
-        {
-          new BrowserLauncher(null).openURLinBrowser(surl.toString());
-        }
-        catch (BrowserLaunchingInitializingException e)
-        {
-          displayBrowserLauncherException(e, surl.toString());
-        }
-        catch (BrowserLaunchingExecutionException e)
-        {
-          displayBrowserLauncherException(e, surl.toString());
-        }
-        catch (UnsupportedOperatingSystemException e)
-        {
-          displayBrowserLauncherException(e, surl.toString());
-        }
-//    }
+			 surl.append(curl[i]);
+		}
+*/		
+     try {
+        startBrowser( new URL( url ) );
+     }
+     catch ( MalformedURLException e ) {
+         e.printStackTrace();
+     }
   }
-
-  private void displayBrowserLauncherException(Exception e, String url)
+  
+  /** Starts the operating system's standard browser
+   *  with an URL address to launch.
+   *  
+   * @param url URL target address
+   */
+  public static void startBrowser ( URL url )
   {
-    JOptionPane.showMessageDialog(this, "Error while opening URL:\n" + url + "\n"
+     if ( Desktop.isDesktopSupported() ) {
+        Desktop sysDesk = Desktop.getDesktop();
+        try {
+           if ( sysDesk.isSupported( Desktop.Action.BROWSE )) {
+//              Log.debug( 6, "(Global.ServiceAction.startDefaultBrowser) starting system default browser with "
+//                    .concat( url.toExternalForm() ));
+              sysDesk.browse( url.toURI() );
+           }
+           else {
+//              GUIService.failureMessage( "msg.failure.nobrowseservice", null );
+           }
+        }
+        catch ( Exception e ) {
+           e.printStackTrace();
+           displayBrowserLauncherException( e, url.toExternalForm() );
+//           GUIService.failureMessage( "msg.failure.browseservice", e );
+        }
+     }
+     else  {
+//        GUIService.failureMessage( "msg.failure.missingdesktop", null );
+     }
+  }  // startBrowser
+
+
+  private static void displayBrowserLauncherException(Exception e, String url)
+  {
+    JOptionPane.showMessageDialog(null, "Error while opening URL:\n" + url + "\n"
       + e.getMessage() + "\n\n"
       + "The \"BrowserLauncher\" used to open a URL is an open-source Java library \n"
       + "separate from Jreepad itself - i.e. a separate Sourceforge project. \n"

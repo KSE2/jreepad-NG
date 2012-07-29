@@ -131,7 +131,7 @@ public class JreepadPrefs //implements Serializable
   static final int TOOLBAR_OFF = 2;
   int toolbarMode;
 
-  boolean showGreenStrip;
+  boolean showFunkyStrip;
 
   /**
    * Date format string used to format inserted date.
@@ -142,10 +142,11 @@ public class JreepadPrefs //implements Serializable
     // Grab the prefs object from wherever Java's API has put it...
     prefs = Preferences.userNodeForPackage(this.getClass());
 
-    openLocation = new File(prefs.get("OPENLOCATION", System.getProperty("user.home")));
-    importLocation = new File(prefs.get("IMPORTLOCATION", System.getProperty("user.home")));
-    exportLocation = new File(prefs.get("EXPORTLOCATION", System.getProperty("user.home")));
-    backupLocation = new File(prefs.get("BACKUPLOCATION", System.getProperty("user.home")));
+    String defValue = System.getProperty("user.home");
+    openLocation = new File(prefs.get("OPENLOCATION", defValue));
+    importLocation = new File(prefs.get("IMPORTLOCATION", defValue));
+    exportLocation = new File(prefs.get("EXPORTLOCATION", defValue));
+    backupLocation = new File(prefs.get("BACKUPLOCATION", defValue));
 
     seenLicense = prefs.getBoolean("SEENLICENSE", false);
 
@@ -243,7 +244,7 @@ treePathCollection = new TreePathCollection(new javax.swing.tree.TreePath[0]);
 
     toolbarMode = prefs.getInt("TOOLBARMODE", TOOLBAR_ICON);
 
-    showGreenStrip = prefs.getBoolean("SHOWGREENSTRIP", true);
+    showFunkyStrip = prefs.getBoolean("SHOWGREENSTRIP", true);
 
     dateFormat = prefs.get("DATEFORMAT", "");
   }
@@ -318,7 +319,7 @@ treePathCollection = new TreePathCollection(new javax.swing.tree.TreePath[0]);
 
     prefs.putInt("TOOLBARMODE", toolbarMode);
 
-    prefs.putBoolean("SHOWGREENSTRIP", showGreenStrip);
+    prefs.putBoolean("SHOWGREENSTRIP", showFunkyStrip);
 
     prefs.put("DATEFORMAT", dateFormat);
 
@@ -397,7 +398,7 @@ treePathCollection = new TreePathCollection(new javax.swing.tree.TreePath[0]);
 
     out.writeInt(toolbarMode);
 
-    out.writeBoolean(showGreenStrip);
+    out.writeBoolean(showFunkyStrip);
   }
   private void readObject(java.io.ObjectInputStream in)
      throws IOException, ClassNotFoundException
@@ -466,7 +467,7 @@ treePathCollection = new TreePathCollection(new javax.swing.tree.TreePath[0]);
 
     toolbarMode = in.readInt();
 
-    showGreenStrip = in.readBoolean();
+    showFunkyStrip = in.readBoolean();
    }
    catch(IOException e)
    {

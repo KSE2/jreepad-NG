@@ -34,6 +34,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -85,26 +86,20 @@ import jreepad.io.JreepadReader;
 import jreepad.io.JreepadWriter;
 import jreepad.io.TreepadWriter;
 import jreepad.io.XmlWriter;
+import jreepad.ui.FontHelper;
 import jreepad.ui.PasswordDialog;
 import jreepad.ui.SaveFileChooser;
-import edu.stanford.ejalbert.BrowserLauncher;
-import edu.stanford.ejalbert.exception.BrowserLaunchingExecutionException;
-import edu.stanford.ejalbert.exception.BrowserLaunchingInitializingException;
-import edu.stanford.ejalbert.exception.UnsupportedOperatingSystemException;
-import jreepad.ui.FontHelper;
 
-public class JreepadViewer
-    extends JFrame { // implements ApplicationListener
-  // Jreepad version, to appear in "about" box etc
-  public static String version = "1.6 rc1";
+public class JreepadViewer extends JFrame  
+{ 
 
   private static Vector theApps = new Vector(1,1);
   private Box toolBar, toolBarIconic;
   private JreepadView theJreepad;
   private JreepadTreeModel document;
   private Container content;
+  protected static ResourceBundle lang;
 // DEPRECATED  private File prefsFile = new File(System.getProperty("user.home"), ".jreepref");
-  protected static ResourceBundle lang = ResourceBundle.getBundle("jreepad.lang.JreepadStrings");
 
 //  private static final String[] fonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames(null);
 //  private static final String[] fontSizes = new String[] {"8","9","10","11","12","13","14","16","18","20","24","30","36"};
@@ -162,7 +157,7 @@ public class JreepadViewer
     private JCheckBoxMenuItem viewToolbarTextMenuItem;
     private JCheckBoxMenuItem viewToolbarOffMenuItem;
 
-  private ColouredStrip funkyGreenStrip;
+  private ColouredStrip funkyStrip;
 
   // private boolean htmlExportOkChecker = false; // Just used to check whether OK or Cancel has been pressed in a certain dialogue box
 
@@ -204,6 +199,7 @@ public class JreepadViewer
     Toolkit theToolkit = getToolkit();
     Dimension wndSize = theToolkit.getScreenSize();
     systemClipboard = theToolkit.getSystemClipboard();
+    lang = Global.lang;
 
     // New method of loading prefs - using java's own API rather handling a file
     setPrefs(new JreepadPrefs(wndSize));
@@ -280,16 +276,17 @@ public class JreepadViewer
     // Finished establishing the autosave thread
 
     content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-    content.add(funkyGreenStrip = new ColouredStrip(new Color(0.09f, 0.4f, 0.12f), wndSize.width, 10) );
-    funkyGreenStrip.setVisible(getPrefs().showGreenStrip);
+    content.add(funkyStrip = new ColouredStrip( Global.STRIP_COLOR, wndSize.width, 10) );
+    funkyStrip.setVisible(getPrefs().showFunkyStrip);
     content.add(toolBar);
     content.add(toolBarIconic);
     setToolbarMode(getPrefs().toolbarMode);
     content.add(theJreepad);
+    setTitleBasedOnFile( null );
 
     // Load the file - if it has been specified, and if it can be found, and if it's a valid HJT file
     File firstTimeFile = null;
-    if(fileNameToLoad != "")
+    if( fileNameToLoad != null )
       firstTimeFile = new File(fileNameToLoad);
     else if(getPrefs().loadLastFileOnOpen && getPrefs().getMostRecentFile() != null)
       firstTimeFile = getPrefs().getMostRecentFile();
@@ -300,8 +297,6 @@ public class JreepadViewer
     // Set close operation
     setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
     addWindowListener(new WindowAdapter() { public void windowClosing(WindowEvent e){ quitAction(); }});
-
-    setTitleBasedOnFilename("");
 
     // Finally, make the window visible and well-sized
     setBounds(getPrefs().windowLeft,getPrefs().windowTop,
@@ -326,6 +321,7 @@ public class JreepadViewer
     macOSXRegistration();
 
     setVisible(true);
+    
     // If loading the last-saved file, expand the nodes we last had open
     if(document.getSaveLocation() != null)
         theJreepad.expandPaths(getPrefs().treePathCollection.paths);
@@ -712,33 +708,36 @@ public class JreepadViewer
 
     viewMenu.add(new JSeparator());
 
-    JMenuItem articleViewModeMenuItem = new JMenu(lang.getString("MENUITEM_ARTICLEFORMAT")); //"View this article as...");
+    // sub-menu "View this article as...");
+    JMenu articleViewModeMenu = new JMenu(lang.getString("MENUITEM_ARTICLEFORMAT")); 
+    viewMenu.add(articleViewModeMenu);
+
     JMenuItem articleViewModeTextMenuItem = new JMenuItem(lang.getString("MENUITEM_ARTICLEFORMAT_TEXT")); //"Text");
       articleViewModeTextMenuItem.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e) {
                 theJreepad.setArticleMode(JreepadArticle.ARTICLEMODE_ORDINARY);
                 updateUndoRedoMenuState();
                        }});
-      articleViewModeMenuItem.add(articleViewModeTextMenuItem);
+      articleViewModeMenu.add(articleViewModeTextMenuItem);
       JMenuItem articleViewModeHtmlMenuItem = new JMenuItem(lang.getString("MENUITEM_ARTICLEFORMAT_HTML")); //"HTML");
       articleViewModeHtmlMenuItem.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e) {
                 theJreepad.setArticleMode(JreepadArticle.ARTICLEMODE_HTML);
                 updateUndoRedoMenuState();
                        }});
-      articleViewModeMenuItem.add(articleViewModeHtmlMenuItem);
+      articleViewModeMenu.add(articleViewModeHtmlMenuItem);
       JMenuItem articleViewModeCsvMenuItem = new JMenuItem(lang.getString("MENUITEM_ARTICLEFORMAT_CSV")); //"Table (comma-separated data)");
       articleViewModeCsvMenuItem.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e) {
                 theJreepad.setArticleMode(JreepadArticle.ARTICLEMODE_CSV);
                 updateUndoRedoMenuState();
                        }});
-      articleViewModeMenuItem.add(articleViewModeCsvMenuItem);
+      articleViewModeMenu.add(articleViewModeCsvMenuItem);
+/*      
       JMenuItem articleViewModeTextileMenuItem = new JMenuItem(lang.getString("MENUITEM_ARTICLEFORMAT_TEXTILE"));
       articleViewModeTextileMenuItem.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e) {
                 theJreepad.setArticleMode(JreepadArticle.ARTICLEMODE_TEXTILEHTML);
                 updateUndoRedoMenuState();
                        }});
       articleViewModeMenuItem.add(articleViewModeTextileMenuItem);
-    viewMenu.add(articleViewModeMenuItem);
-
+*/
 
     viewMenu.add(new JSeparator());
     JMenuItem thisNodesUrlMenuItem = new JMenuItem(lang.getString("MENUITEM_NODEADDRESS")); //"\"node://\" address for current node");
@@ -758,7 +757,7 @@ public class JreepadViewer
     articleViewModeTextMenuItem.setAccelerator(KeyStroke.getKeyStroke('7', MENU_MASK));
     articleViewModeHtmlMenuItem.setAccelerator(KeyStroke.getKeyStroke('8', MENU_MASK));
     articleViewModeCsvMenuItem.setAccelerator(KeyStroke.getKeyStroke('9', MENU_MASK));
-    articleViewModeTextileMenuItem.setAccelerator(KeyStroke.getKeyStroke('0', MENU_MASK));
+//    articleViewModeTextileMenuItem.setAccelerator(KeyStroke.getKeyStroke('0', MENU_MASK));
     viewToolbarMenu.setMnemonic('o');
 
     viewMenu.add(new JSeparator());
@@ -1212,67 +1211,10 @@ public class JreepadViewer
     // Finished: Establish the nodeUrlDisplay dialogue box
   }
 
-  public static void main(String[] args)
+  public static void main( String[] args )
   {
 
-    // System.err.println("" + args.length + " input arguments provided.");
-    // for(int i=0; i<args.length; i++){
-    //   System.err.println(args[i]);
-    // }
-
-    try
-    {
-      UIManager.setLookAndFeel(
-      UIManager.getSystemLookAndFeelClassName());
-    } catch (Exception e)
-    {}
-
-    String launchFilename="", launchPrefsFilename=null;
-
-    int ARGMODE_FILE = 0;
-    int ARGMODE_PREF = 1;
-    int argMode = ARGMODE_FILE;
-
-    for(int i=0; i<args.length; i++)
-    {
-      if(args[i].startsWith("-h") || args[i].startsWith("--h"))
-      {
-        System.out.println("Jreepad command-line arguments:");
-        System.out.println("  -p [prefsfile]    Load/save preferences from named location instead of default");
-        System.out.println("  [filename]        Jreepad/treepad file to load on startup");
-        System.out.println("  ");
-        System.out.println("For example:");
-        System.out.println("  java -jar Jreepad.jar -p /Users/jo/Library/jreeprefs.dat /Users/jo/Documents/mynotes.hjt");
-        System.exit(1);
-      }
-      else if(args[i].equals("-p"))
-        argMode = ARGMODE_PREF;
-      else if(argMode == ARGMODE_PREF && launchPrefsFilename==null)
-      {
-        launchPrefsFilename=args[i];
-        argMode = ARGMODE_FILE;
-      }
-      else if(argMode == ARGMODE_FILE && launchFilename.equals(""))
-      {
-        launchFilename=args[i];
-      }
-    }
-
-    // System.err.println("Launching using prefs file \"" + launchPrefsFilename + "\" and loadfile \"" + launchFilename + "\"\n");
-
-    new JreepadViewer(launchFilename, launchPrefsFilename);
-
-    /*
-    The old way of handling the arguments
-
-    if(args.length==0)
-      new JreepadViewer();
-    else if(args.length==1)
-      new JreepadViewer(args[0]);
-    else
-      System.err.println("Only one (optional) argument can be passed - the name of the HJT file to load.");
-    */
-
+     Global.init( args );
   }
 
   /**
@@ -1310,7 +1252,7 @@ public class JreepadViewer
     content.add(theJreepad);
     searchDialog.setJreepad(theJreepad);
 
-    setTitleBasedOnFilename("");
+    setTitleBasedOnFile( null );
     validate();
     repaint();
     document.setContentSaved(true);
@@ -1354,7 +1296,7 @@ public class JreepadViewer
     searchDialog.setJreepad(theJreepad);
 
     getPrefs().exportLocation = getPrefs().importLocation = file;
-    setTitleBasedOnFilename(file.getName());
+    setTitleBasedOnFile( file );
     validate();
     repaint();
     return true;
@@ -1452,12 +1394,12 @@ public class JreepadViewer
           OutputStream fos = new FileOutputStream(saveLocation);
           writer.write(fos, document);
           fos.close();
-
+/*
           if(MAC_OS_X){
             com.apple.eio.FileManager.setFileTypeAndCreator(saveLocation.toString(),
                     appleAppCode, appleAppCode);
           }
-
+*/
           // When calling "Save As..." remember the _new_ file settings
           document.setSaveLocation(saveLocation);
           document.setFileType(fileType);
@@ -1514,18 +1456,20 @@ public class JreepadViewer
   } // End of: backupToAction()
 
 
-  private void setTitleBasedOnFilename(String filename)
+  private void setTitleBasedOnFile( File file )
   {
-    if(filename=="")
-      windowTitle = "Jreepad (Java Treepad Editor)";
+    if(file == null)
+      windowTitle = "Jreepad-NG (Java Treepad Editor)";
     else
-      windowTitle = filename + " - Jreepad";
+      windowTitle = file.getName() + " - Jreepad-NG";
+    
     updateWindowTitle();
   }
 
   private void updateWindowTitle()
   {
-    setTitle(windowTitle + (document.isContentSaved()?"":"*") + (getPrefs().autoSave?" ["+lang.getString("AUTOSAVE_ACTIVE")+"]":""));
+    setTitle(windowTitle + (document.isContentSaved() ? "" : "*") + 
+            (getPrefs().autoSave ? " ["+lang.getString("AUTOSAVE_ACTIVE")+"]" : ""));
   }
 
   private static final int FILE_FORMAT_HJT=1;
@@ -1534,6 +1478,7 @@ public class JreepadViewer
   private static final int FILE_FORMAT_TEXT=4;
   private static final int FILE_FORMAT_TEXTASLIST=5;
   private static final int FILE_FORMAT_ARTICLESTOTEXT=6;
+  
   private void importAction(int importFormat)
   {
     boolean multipleFiles;
@@ -1711,20 +1656,8 @@ public class JreepadViewer
       setCursor(Cursor.getDefaultCursor());
 
       // Now launch the file in a browser...
-      surl = systemTempFile.toURL().toString();
-      new BrowserLauncher(null).openURLinBrowser(surl);
-    }
-    catch (BrowserLaunchingInitializingException e)
-    {
-      displayBrowserLauncherException(e, surl);
-    }
-    catch (BrowserLaunchingExecutionException e)
-    {
-      displayBrowserLauncherException(e, surl);
-    }
-    catch (UnsupportedOperatingSystemException e)
-    {
-      displayBrowserLauncherException(e, surl);
+//      surl = systemTempFile.toURL().toString();
+      JreepadView.startBrowser( systemTempFile.toURL() );
     }
     catch (IOException err)
     {
@@ -1732,20 +1665,6 @@ public class JreepadViewer
         JOptionPane.ERROR_MESSAGE);
     }
   }
-
-  private void displayBrowserLauncherException(Exception e, String url)
-  {
-    JOptionPane.showMessageDialog(this, "Error while opening URL:\n" + url + "\n"
-      + e.getMessage() + "\n\n"
-      + "The \"BrowserLauncher\" used to open a URL is an open-source Java library \n"
-      + "separate from Jreepad itself - i.e. a separate Sourceforge project. \n"
-      + "It may be a good idea to submit a bug report to\n"
-      + "http://browserlaunch2.sourceforge.net/\n\n"
-      + "If you do, please remember to supply information about the operating system\n"
-      + "you are using - which type, and which version.", lang.getString("TITLE_MISC_ERROR"),
-      JOptionPane.ERROR_MESSAGE);
-  }
-
 
   public void quitAction()
   {
@@ -1885,14 +1804,13 @@ public class JreepadViewer
   private void aboutAction()
   {
               JOptionPane.showMessageDialog(this,
-              "Jreepad v " + version + "\n\n" +
-              lang.getString("HELP_ABOUT") +
-              "\n" +
-              "\nJreepad \u00A9 2004-2007 Dan Stowell" +
-              "\n" +
-              "\nhttp://jreepad.sourceforge.net"
+              Global.getProgramTitle() +
+              "\n\nJreepad-NG \u00A9 2012 Wolfgang Keller" +
+              "\nhttps://github.com/KSE2/jreepad-NG" +
+              "\n\n" +
+              lang.getString("HELP_ABOUT") + "\n\n"
               ,
-              "About Jreepad",
+              "About Jreepad-NG",
               JOptionPane.INFORMATION_MESSAGE);
   }
 
@@ -1912,7 +1830,7 @@ public class JreepadViewer
     prefsDialog.toFront();
 
     // Apply preferences that immediately affect the GUI
-    funkyGreenStrip.setVisible(getPrefs().showGreenStrip);
+    funkyStrip.setVisible(getPrefs().showFunkyStrip);
     webSearchMenuItem.setText(getPrefs().webSearchName);
     characterWrapArticleMenuItem.setText(JreepadViewer.lang.getString("MENUITEM_HARDWRAP1")
         + getPrefs().characterWrapWidth + JreepadViewer.lang.getString("MENUITEM_HARDWRAP2"));
@@ -2406,13 +2324,11 @@ lang.getString("HELP_LICENSE") + "\n\n           http://www.gnu.org/copyleft/gpl
 
   static class ColouredStrip extends JPanel
   {
-    Color col;
     ColouredStrip(Color col, int maxWidth, int maxHeight)
     {
       super(false);
       setMaximumSize(new Dimension(maxWidth, maxHeight));
       setBackground(col);
-//      this.col = col;
     }
 
 //    public void paint(Graphics gggg)

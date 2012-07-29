@@ -27,7 +27,7 @@ import java.util.Date;
 
 import javax.swing.undo.UndoManager;
 
-import org.philwilson.JTextile;
+//import org.philwilson.JTextile;
 
 /**
  * Class representing a single article without its tree context.
@@ -153,7 +153,7 @@ public class JreepadArticle
     {
         StringBuffer ret = new StringBuffer();
         ret.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\">\n<head>\n<title>");
-        ret.append(htmlSpecialChars(getTitle()));
+        ret.append(htmlEncoded(getTitle()));
         ret.append("</title>\n<style type=\"text/css\">\n"
                 + "dl {}\ndl dt { font-weight: bold; margin-top: 10px; font-size: 24pt; }\ndl dd {margin-left: 20px; padding-left: 0px;}\ndl dd dl dt {background: black; color: white; font-size: 12pt; }\ndl dd dl dd dl dt {background: white; color: black; }"
                 + "\n</style>\n</head>\n\n<body" + (causeToPrint ? " onload='print();'" : "")
@@ -165,10 +165,12 @@ public class JreepadArticle
 
     public String toHtml(int exportMode, boolean urlsToLinks, int anchorType)
     {
-        switch (articleMode)
+        switch ( articleMode )
         {
+        case ARTICLEMODE_TEXTILEHTML:
         case ARTICLEMODE_HTML:
             return getContent();
+/*            
         case ARTICLEMODE_TEXTILEHTML:
             try
             {
@@ -178,6 +180,7 @@ public class JreepadArticle
             {
                 return getContent();
             }
+*/            
         case ARTICLEMODE_CSV:
             String[][] csv = interpretContentAsCsv();
             StringBuffer csvHtml = new StringBuffer(
@@ -186,11 +189,12 @@ public class JreepadArticle
             {
                 csvHtml.append("\n    <tr>");
                 for (int j = 0; j < csv[0].length; j++)
-                    csvHtml.append("\n      <td>" + htmlSpecialChars(csv[i][j]) + "</td>");
+                    csvHtml.append("\n      <td>" + htmlEncoded(csv[i][j]) + "</td>");
                 csvHtml.append("\n    </tr>");
             }
             csvHtml.append("\n  </table>");
             return csvHtml.toString();
+            
         case ARTICLEMODE_ORDINARY:
         default:
             switch (exportMode)
@@ -198,9 +202,10 @@ public class JreepadArticle
             case EXPORT_HTML_PREFORMATTED:
                 return "<pre>"
                     + (urlsToLinks ? urlsToHtmlLinksAndHtmlSpecialChars(getContent(), anchorType)
-                        : htmlSpecialChars(getContent())) + "</pre>";
+                        : htmlEncoded(getContent())) + "</pre>";
             case EXPORT_HTML_HTML:
                 return getContent();
+/*                
             case EXPORT_HTML_TEXTILEHTML:
                 try
                 {
@@ -210,31 +215,36 @@ public class JreepadArticle
                 {
                     return getContent();
                 }
+*/                
+            case EXPORT_HTML_TEXTILEHTML:
             case EXPORT_HTML_NORMAL:
             default:
                 return (urlsToLinks ? urlsToHtmlLinksAndHtmlSpecialChars(getContent(), anchorType)
-                    : htmlSpecialChars(getContent()));
+                    : htmlEncoded(getContent()));
             }
         }
     }
 
-    private static String htmlSpecialChars(String in)
+    private static String htmlEncoded(String in)
     {
-        char[] c = in.toCharArray();
+        char[] ca = in.toCharArray();
         StringBuffer ret = new StringBuffer();
-        for (int i = 0; i < c.length; i++)
-            if (c[i] == '<')
+        for ( int i = 0; i < ca.length; i++ )
+        {
+           char c = ca[i]; 
+            if (c == '<')
                 ret.append("&lt;");
-            else if (c[i] == '>')
+            else if (c == '>')
                 ret.append("&gt;");
-            else if (c[i] == '&')
+            else if (c == '&')
                 ret.append("&amp;");
-            else if (c[i] == '\n')
+            else if (c == '\n')
                 ret.append(" <br />\n");
-            else if (c[i] == '"')
+            else if (c == '"')
                 ret.append("&quot;");
             else
-                ret.append(c[i]);
+                ret.append(c);
+        }
         return ret.toString();
     }
 

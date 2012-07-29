@@ -11,4 +11,4 @@ Elements of the Roadmap are:
 - context menu in tree list
 - improved context menu in text editor
 - procedural robustness for data security (loss)
-
+- internationalise UI text  

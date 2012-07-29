@@ -124,7 +124,7 @@ public class PrefsDialog extends JDialog
         // quoteCsvCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         // quoteCsvCheckBox.setHorizontalAlignment(SwingConstants.LEFT);
         genPrefVBox.add(showGreenStripCheckBox = new JCheckBox(JreepadViewer.lang.getString("PREFS_GREEN_STRIP"),
-            getPrefs().showGreenStrip));
+            getPrefs().showFunkyStrip));
         showGreenStripCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         showGreenStripCheckBox.setHorizontalAlignment(SwingConstants.LEFT);
 
@@ -297,7 +297,7 @@ public class PrefsDialog extends JDialog
                     getPrefs().htmlExportAnchorLinkType = htmlExportAnchorTypeSelector
                         .getSelectedIndex();
                     // getPrefs().addQuotesToCsvOutput = quoteCsvCheckBox.isSelected();
-                    getPrefs().showGreenStrip = showGreenStripCheckBox.isSelected();
+                    getPrefs().showFunkyStrip = showGreenStripCheckBox.isSelected();
 
                     String dateFormat = dateFormatField.getText();
                     try

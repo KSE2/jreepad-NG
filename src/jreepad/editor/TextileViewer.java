@@ -19,7 +19,6 @@ The full license can be read online here:
 
 package jreepad.editor;
 
-import org.philwilson.JTextile;
 
 import jreepad.JreepadArticle;
 
@@ -37,7 +36,8 @@ public class TextileViewer extends HtmlViewer
     {
     	try
     	{
-    		editorPane.setText(JTextile.textile(article.getContent()));
+    		editorPane.setText( article.getContent() );
+//            editorPane.setText(JTextile.textile(article.getContent()));
     	}
     	catch (Exception e)
     	{
